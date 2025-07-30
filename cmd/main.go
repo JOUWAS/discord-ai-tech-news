@@ -13,20 +13,30 @@ import (
 
 	"discord-ai-tech-news/config"
 	"discord-ai-tech-news/internal/bot"
+	discordHandler "discord-ai-tech-news/internal/handler/discord"
 	httpHandler "discord-ai-tech-news/internal/handler/http"
+	"discord-ai-tech-news/internal/repository"
+	"discord-ai-tech-news/internal/service"
+	"discord-ai-tech-news/internal/usecase"
 )
 
 func main() {
-	config.LoadEnv()
+	cfg := config.Load()
 
-	token := os.Getenv("TOKEN")
 	port := os.Getenv("APP_PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	discordSession := bot.NewDiscordBot(token)
-	defer discordSession.Close()
+	// Build dependencies dari luar ke dalam
+	newsRepo := repository.NewHackerNewsRepository()
+	newsService := service.NewExternalNewsService(newsRepo)
+	messageUsecase := usecase.NewMessageUsecase(newsService)
+	messageHandler := discordHandler.NewMessageHandler(messageUsecase)
+
+	// Production
+	bot := bot.NewDiscordBot(cfg.DiscordToken, messageHandler)
+	defer bot.Close()
 
 	// Start Gin HTTP server
 	router := gin.Default()
