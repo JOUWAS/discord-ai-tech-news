@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	DiscordToken string
+	NewsAPIKey   string
 	AppPort      string
 }
 
@@ -23,6 +24,11 @@ func Load() *Config {
 		log.Fatal("TOKEN is not set in environment variables")
 	}
 
+	newsAPIKey := os.Getenv("NEWS_API_KEY")
+	if newsAPIKey == "" {
+		log.Fatal("NEWS_API_KEY is not set in environment variables")
+	}
+
 	appPort := os.Getenv("APP_PORT")
 	if appPort == "" {
 		appPort = "8080"
@@ -30,6 +36,7 @@ func Load() *Config {
 
 	return &Config{
 		DiscordToken: discordToken,
+		NewsAPIKey:   newsAPIKey,
 		AppPort:      appPort,
 	}
 }

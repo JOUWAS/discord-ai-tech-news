@@ -29,7 +29,7 @@ func main() {
 	}
 
 	// Build dependencies dari luar ke dalam
-	newsRepo := repository.NewHackerNewsRepository()
+	newsRepo := repository.NewNewsApiRepository()
 	newsService := service.NewExternalNewsService(newsRepo)
 	messageUsecase := usecase.NewMessageUsecase(newsService)
 	messageHandler := discordHandler.NewMessageHandler(messageUsecase)
