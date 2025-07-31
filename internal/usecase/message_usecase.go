@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 
+	"discord-ai-tech-news/internal/repository"
 	"discord-ai-tech-news/internal/service"
 
 	"github.com/bwmarrin/discordgo"
@@ -77,7 +78,57 @@ func (u *MessageUsecase) handleNewsRequest(ctx context.Context) (string, error) 
 }
 
 func (u *MessageUsecase) handleSearchRequest(ctx context.Context, keyword string) (string, error) {
-	return fmt.Sprintf("🔍 **Pencarian: \"%s\"**\n\n⚠️ Fitur pencarian akan segera tersedia!\n\n💡 Untuk saat ini, gunakan `news` untuk berita teknologi terbaru.", keyword), nil
+	log.Printf("🔍 DEBUG: User searching for: %s", keyword)
+
+	// Call search function from news service
+	searchResults, err := u.newsService.SearchNews(ctx, keyword)
+	if err != nil {
+		log.Printf("❌ ERROR: Search failed for '%s': %v", keyword, err)
+		return fmt.Sprintf("❌ **Pencarian Gagal**\n\n🔍 Tidak dapat mencari berita untuk: **%s**\n\n🔄 Silakan coba lagi atau gunakan keyword yang berbeda.", keyword), err
+	}
+
+	if len(searchResults) == 0 {
+		return fmt.Sprintf("🔍 **Hasil Pencarian: \"%s\"**\n\n❌ Tidak ditemukan berita yang relevan.\n\n💡 **Tips:**\n• Coba keyword yang lebih umum\n• Gunakan bahasa Inggris (misal: AI, blockchain, startup)\n• Atau ketik `news` untuk berita terbaru", keyword), nil
+	}
+
+	// Format results for Discord
+	return u.formatSearchResults(keyword, searchResults), nil
+}
+
+func (u *MessageUsecase) formatSearchResults(keyword string, results []repository.News) string {
+	var response strings.Builder
+
+	response.WriteString(fmt.Sprintf("🔍 **Hasil Pencarian: \"%s\"**\n\n", keyword))
+	response.WriteString(fmt.Sprintf("📊 Ditemukan **%d artikel** yang relevan:\n\n", len(results)))
+
+	// Limit to 5 results for Discord message length
+	maxResults := 5
+	if len(results) > maxResults {
+		results = results[:maxResults]
+	}
+
+	for i, article := range results {
+		// Calculate time ago
+		timeAgo := u.newsService.TimeAgo(article.PublishedAt)
+
+		response.WriteString(fmt.Sprintf("**%d. %s**\n", i+1, article.Title))
+		if article.Description != "" {
+			// Limit description length
+			desc := article.Description
+			if len(desc) > 150 {
+				desc = desc[:150] + "..."
+			}
+			response.WriteString(fmt.Sprintf("📄 %s\n", desc))
+		}
+		response.WriteString(fmt.Sprintf("🔗 [Baca Selengkapnya](%s)\n", article.URL))
+		response.WriteString(fmt.Sprintf("📅 %s • 📰 %s\n\n", timeAgo, article.Source))
+	}
+
+	if len(results) == maxResults {
+		response.WriteString(fmt.Sprintf("💡 **Tips**: Gunakan keyword yang lebih spesifik untuk hasil yang lebih akurat.\n"))
+	}
+
+	return response.String()
 }
 
 func (u *MessageUsecase) getHelpMessage() string {
@@ -90,9 +141,14 @@ func (u *MessageUsecase) getHelpMessage() string {
 • ` + "`ping`" + ` - Cek status koneksi bot
 • ` + "`status`" + ` - Lihat status bot
 
-🔍 **Search Commands** *(Coming Soon)*:
+🔍 **Search Commands** *(Aktif)*:
 • ` + "`search <keyword>`" + ` - Cari berita berdasarkan kata kunci
 • ` + "`cari <keyword>`" + ` - Pencarian dalam bahasa Indonesia
+
+📝 **Contoh Pencarian:**
+• ` + "`search AI`" + ` - Cari berita tentang AI
+• ` + "`cari blockchain`" + ` - Cari berita blockchain
+• ` + "`search startup`" + ` - Cari berita startup
 
 ---
 🤖 **About**: Saya adalah bot yang menyediakan berita teknologi terbaru dari berbagai sumber terpercaya.

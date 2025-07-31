@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
+	"sort"
 	"strings"
 	"time"
 
@@ -15,8 +17,10 @@ type NewsResponse struct {
 
 type NewsService interface {
 	FetchTechNews(ctx context.Context) (*NewsResponse, error)
+	SearchNews(ctx context.Context, keyword string) ([]repository.News, error) // ← ADD THIS
 	ValidateNewsSource(source string) bool
 	FormatNewsForDiscord(news []repository.News) string
+	TimeAgo(t time.Time) string // ← ADD THIS for time formatting
 }
 
 type ExternalNewsService struct {
@@ -48,6 +52,23 @@ func (s *ExternalNewsService) FetchTechNews(ctx context.Context) (*NewsResponse,
 	return &NewsResponse{News: techNews}, nil
 }
 
+// Add SearchNews method
+func (s *ExternalNewsService) SearchNews(ctx context.Context, keyword string) ([]repository.News, error) {
+	log.Printf("🔍 DEBUG: Service searching for: %s", keyword)
+
+	// Call repository search
+	results, err := s.repository.SearchNews(keyword)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search news: %w", err)
+	}
+
+	// Filter and validate results
+	validResults := s.filterSearchResults(results, keyword)
+
+	log.Printf("✅ DEBUG: Search returned %d valid results", len(validResults))
+	return validResults, nil
+}
+
 func (s *ExternalNewsService) ValidateNewsSource(source string) bool {
 	validSources := []string{
 		"techcrunch", "wired", "ars technica", "ieee spectrum",
@@ -77,7 +98,7 @@ func (s *ExternalNewsService) FormatNewsForDiscord(news []repository.News) strin
 		}
 
 		// Format waktu yang user-friendly
-		timeAgo := s.timeAgo(article.PublishedAt)
+		timeAgo := s.TimeAgo(article.PublishedAt)
 
 		result.WriteString(fmt.Sprintf("**%d. %s**\n", i+1, article.Title))
 		if article.Description != "" {
@@ -128,7 +149,8 @@ func (s *ExternalNewsService) containsTechKeywords(article repository.News, keyw
 	return false
 }
 
-func (s *ExternalNewsService) timeAgo(t time.Time) string {
+// Add TimeAgo helper method
+func (s *ExternalNewsService) TimeAgo(t time.Time) string {
 	now := time.Now()
 	diff := now.Sub(t)
 
@@ -147,4 +169,29 @@ func (s *ExternalNewsService) timeAgo(t time.Time) string {
 	default:
 		return t.Format("2 Jan 2006")
 	}
+}
+
+func (s *ExternalNewsService) filterSearchResults(results []repository.News, keyword string) []repository.News {
+	var filtered []repository.News
+
+	keywordLower := strings.ToLower(keyword)
+
+	for _, article := range results {
+		// Check if article is relevant
+		titleLower := strings.ToLower(article.Title)
+		descLower := strings.ToLower(article.Description)
+
+		// Must contain the keyword and have valid content
+		if (strings.Contains(titleLower, keywordLower) || strings.Contains(descLower, keywordLower)) &&
+			article.Title != "" && article.URL != "" && article.Title != "[Removed]" {
+			filtered = append(filtered, article)
+		}
+	}
+
+	// Sort by published date (newest first)
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].PublishedAt.After(filtered[j].PublishedAt)
+	})
+
+	return filtered
 }
