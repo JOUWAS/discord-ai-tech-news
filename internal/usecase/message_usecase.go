@@ -85,7 +85,7 @@ func (u *MessageUsecase) getHelpMessage() string {
 
 🔥 **Main Commands:**
 • ` + "`news`" + ` atau ` + "`berita`" + ` - Dapatkan berita teknologi terbaru
-• ` + "`hello`" + ` atau ` + "`hi`" + ` - Sapa bot
+• ` + "`hello`" + ` atau ` + "`hi`" + ` - Sapa bot dan akan return nama
 • ` + "`help`" + ` atau ` + "`bantuan`" + ` - Tampilkan menu ini
 • ` + "`ping`" + ` - Cek status koneksi bot
 • ` + "`status`" + ` - Lihat status bot
