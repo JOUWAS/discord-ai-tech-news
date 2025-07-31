@@ -1,0 +1,149 @@
+# golangci-lint configuration file
+# See https://golangci-lint.run/usage/configuration/ for full options
+
+run:
+  timeout: 5m
+  issues-exit-code: 1
+  tests: true
+  skip-dirs:
+    - vendor
+    - tmp
+    - testdata
+  skip-files:
+    - ".*\\.pb\\.go$"
+    - ".*_gen\\.go$"
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  uniq-by-line: true
+  sort-results: true
+
+linters:
+  enable:
+    # Default linters
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    
+    # Additional recommended linters
+    - gofmt
+    - goimports
+    - golint
+    - gosec
+    - misspell
+    - unconvert
+    - unparam
+    - gocyclo
+    - gocritic
+    - revive
+    - gofumpt
+    - whitespace
+    - wsl
+    - nolintlint
+    - exportloopref
+    - goconst
+    - gomod
+    - gomodguard
+    - goprintffuncname
+    - importas
+    - makezero
+    - nilerr
+    - predeclared
+    - rowserrcheck
+    - sqlclosecheck
+    - thelper
+    - tparallel
+    - wastedassign
+
+  disable:
+    # Disable some linters that might be too strict
+    - funlen      # Function length
+    - cyclop      # Cyclomatic complexity
+    - gocognit    # Cognitive complexity
+    - maintidx    # Maintainability index
+    - nestif      # Nested if statements
+    - lll         # Line length
+
+linters-settings:
+  gofmt:
+    simplify: true
+  
+  goimports:
+    local-prefixes: discord-ai-tech-news
+  
+  golint:
+    min-confidence: 0.8
+  
+  gocyclo:
+    min-complexity: 15
+  
+  govet:
+    check-shadowing: true
+    enable-all: true
+  
+  revive:
+    rules:
+      - name: exported
+        arguments: [checkPrivateReceivers, sayRepetitiveInsteadOfStutters]
+  
+  gosec:
+    severity: medium
+    confidence: medium
+    excludes:
+      - G104 # Audit errors not checked
+  
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+      - experimental
+    disabled-checks:
+      - unnamedResult
+      - hugeParam
+      - rangeValCopy
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gosec
+        - gocritic
+        - revive
+    
+    # Exclude known linter issues or false positives
+    - text: "Use of weak random number generator"
+      linters:
+        - gosec
+    
+    - text: "should not use dot imports"
+      linters:
+        - revive
+    
+    # Exclude shadow checking on err variables
+    - text: "shadow: declaration of \"err\""
+      linters:
+        - govet
+
+  # Show only new issues: if there are unstaged changes or untracked files,
+  # only those changes are analyzed, else only changes in HEAD~ are analyzed.
+  new: false
+
+  # Maximum issues count per one linter
+  max-issues-per-linter: 0
+
+  # Maximum count of issues with the same text
+  max-same-issues: 0
+
+  # Show all issues from a linter
+  exclude-use-default: false
+
+  # Fix found issues (if supported by the linter)
+  fix: false

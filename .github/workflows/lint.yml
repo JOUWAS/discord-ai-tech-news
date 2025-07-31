@@ -1,0 +1,33 @@
+name: Lint
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.5'
+          
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
+          # Optional: golangci-lint command line arguments.
+          args: --timeout=30m
+
+          # Optional: show only new issues if it's a pull request. The default value is `false`.
+          only-new-issues: true
+
+          # Optional: if set to true then the all caching functionality will be complete disabled,
+          #           takes precedence over all other caching options.
+          skip-cache: false

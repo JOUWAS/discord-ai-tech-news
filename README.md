@@ -32,7 +32,13 @@ discord-ai-tech-news/
 │   └── usecase/
 │       └── message_usecase.go  # Message processing logic
 ├── .air.toml              # Air hot reload configuration
+├── .github/
+│   └── workflows/         # GitHub Actions CI/CD
+│       ├── ci.yml         # Main CI pipeline
+│       └── lint.yml       # Linting workflow
+├── .golangci.yml          # golangci-lint configuration
 ├── .env.example           # Environment variables template
+├── Makefile               # Build automation
 ├── go.mod                # Go module dependencies
 └── README.md             # This file
 ```
@@ -43,6 +49,8 @@ discord-ai-tech-news/
 - Discord Bot Token
 - Discord Server with appropriate permissions
 - [Air](https://github.com/cosmtrek/air) for hot reload development (optional)
+- [golangci-lint](https://golangci-lint.run/) for code linting (optional)
+- [Make](https://www.gnu.org/software/make/) for build automation (optional)
 
 ## ⚙️ Installation
 
@@ -62,7 +70,16 @@ discord-ai-tech-news/
    go install github.com/cosmtrek/air@latest
    ```
 
-4. **Set up environment variables**
+4. **Install development tools (optional)**
+   ```bash
+   # Install golangci-lint for linting
+   go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+   
+   # Or use the Makefile
+   make install-tools
+   ```
+
+5. **Set up environment variables**
    ```bash
    cp .env.example .env
    ```
@@ -73,7 +90,7 @@ discord-ai-tech-news/
    APP_PORT=8080
    ```
 
-5. **Build the application**
+6. **Build the application**
    ```bash
    go build ./cmd
    ```
@@ -82,18 +99,27 @@ discord-ai-tech-news/
 
 ### Development Mode with Hot Reload (Recommended)
 ```bash
+# Using Air directly
 air
+
+# Or using Makefile
+make dev
 ```
 
 ### Development Mode (Standard)
 ```bash
+# Using Go directly
 go run ./cmd
+
+# Or using Makefile
+make run
 ```
 
 ### Production Mode
 ```bash
 # Build first
 go build -o discord-bot ./cmd
+# Or: make build
 
 # Run the binary
 ./discord-bot
@@ -195,6 +221,51 @@ This project supports hot reload using Air for faster development:
 
 3. **Air Configuration**: The project includes `.air.toml` for custom configuration
 
+### Code Quality & Linting
+
+This project uses [golangci-lint](https://golangci-lint.run/) for comprehensive linting:
+
+1. **Run linter**:
+   ```bash
+   # Using golangci-lint directly
+   golangci-lint run
+   
+   # Or using Makefile
+   make lint
+   ```
+
+2. **Auto-fix issues**:
+   ```bash
+   # Using golangci-lint directly
+   golangci-lint run --fix
+   
+   # Or using Makefile
+   make lint-fix
+   ```
+
+3. **Configuration**: See `.golangci.yml` for linting rules
+
+### Makefile Commands
+
+The project includes a Makefile for common development tasks:
+
+```bash
+make help          # Show all available commands
+make build         # Build the application
+make run           # Run the application
+make dev           # Start development with hot reload
+make test          # Run tests
+make test-coverage # Run tests with coverage report
+make lint          # Run linter
+make lint-fix      # Run linter with auto-fix
+make fmt           # Format code
+make tidy          # Tidy dependencies
+make check         # Run all checks (lint, test, build)
+make pre-commit    # Prepare code for commit
+make clean         # Clean build artifacts
+make install-tools # Install development tools
+```
+
 ### Adding New Commands
 
 1. Edit `internal/usecase/message_usecase.go` to add new command logic
@@ -228,10 +299,28 @@ This project follows Clean Architecture principles:
 ```bash
 # Run tests
 go test ./...
+# Or: make test
 
 # Run tests with coverage
 go test -cover ./...
+# Or: make test-coverage
+
+# Run tests with race detection
+go test -race ./...
 ```
+
+### Continuous Integration
+
+The project includes GitHub Actions workflows for:
+
+- **Linting**: Runs golangci-lint on every pull request
+- **Testing**: Runs tests across different Go versions
+- **Security**: Runs security scans with gosec
+- **Coverage**: Uploads coverage reports to Codecov
+
+Workflows are triggered on:
+- Pull requests to `master` branch
+- Direct pushes to `master` branch
 
 ## 📦 Dependencies
 
@@ -242,14 +331,25 @@ go test -cover ./...
 ### Development Dependencies
 
 - [air](https://github.com/cosmtrek/air) - Hot reload for Go applications
+- [golangci-lint](https://golangci-lint.run/) - Fast Go linters runner
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Make your changes
+4. Run quality checks (`make pre-commit`)
+5. Commit your changes (`git commit -m 'Add some amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
+
+### Code Quality Standards
+
+- All code must pass `golangci-lint` checks
+- Tests are required for new features
+- Maintain test coverage above 80%
+- Follow Go best practices and conventions
+- Use meaningful commit messages
 
 ## 📝 License
 
@@ -276,6 +376,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
    - Ensure Air is properly installed: `go install github.com/cosmtrek/air@latest`
    - Check if `.air.toml` configuration file exists
    - Try running `air -v` to verify Air installation
+
+5. **Linting errors**
+   - Install golangci-lint: `make install-tools`
+   - Run linter to see issues: `make lint`
+   - Auto-fix some issues: `make lint-fix`
+   - Check `.golangci.yml` for configuration
+
+6. **CI/CD issues**
+   - Ensure all linting checks pass locally before pushing
+   - Check GitHub Actions logs for detailed error messages
+   - Make sure `.github/workflows/` files are properly configured
 
 ### Logs
 
