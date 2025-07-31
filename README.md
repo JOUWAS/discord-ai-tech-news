@@ -28,6 +28,7 @@ discord-ai-tech-news/
 │   │   └── http/
 │   │       └── routes.go   # HTTP routes and handlers
 │   ├── repository/        # Data access layer
+│   ├── response/          # Response structures and formatters
 │   ├── service/           # Business logic services
 │   └── usecase/
 │       └── message_usecase.go  # Message processing logic
