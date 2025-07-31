@@ -19,9 +19,9 @@ func Load() *Config {
 		log.Println("Warning: .env file not found, using environment variables")
 	}
 
-	discordToken := os.Getenv("TOKEN")
+	discordToken := os.Getenv("NEWS_TOKEN")
 	if discordToken == "" {
-		log.Fatal("TOKEN is not set in environment variables")
+		log.Fatal("NEWS_TOKEN is not set in environment variables")
 	}
 
 	newsAPIKey := os.Getenv("NEWS_API_KEY")
@@ -47,7 +47,7 @@ func LoadEnv() {
 		log.Fatal("Error loading .env file")
 	}
 
-	if os.Getenv("TOKEN") == "" {
-		log.Fatal("TOKEN is not set in environment variables")
+	if os.Getenv("NEWS_TOKEN") == "" {
+		log.Fatal("NEWS_TOKEN is not set in environment variables")
 	}
 }

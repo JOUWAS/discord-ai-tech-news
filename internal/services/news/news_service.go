@@ -1,4 +1,4 @@
-package service
+package news
 
 import (
 	"context"
@@ -8,26 +8,28 @@ import (
 	"strings"
 	"time"
 
-	"discord-ai-tech-news/internal/repository"
+	newsRepo "discord-ai-tech-news/internal/repositories/news"
 )
 
+type News = newsRepo.News
+
 type NewsResponse struct {
-	News []repository.News `json:"news"`
+	News []News `json:"news"`
 }
 
 type NewsService interface {
 	FetchTechNews(ctx context.Context) (*NewsResponse, error)
-	SearchNews(ctx context.Context, keyword string) ([]repository.News, error) // ← ADD THIS
+	SearchNews(ctx context.Context, keyword string) ([]News, error)
 	ValidateNewsSource(source string) bool
-	FormatNewsForDiscord(news []repository.News) string
-	TimeAgo(t time.Time) string // ← ADD THIS for time formatting
+	FormatNewsForDiscord(news []News) string
+	TimeAgo(t time.Time) string
 }
 
 type ExternalNewsService struct {
-	repository repository.NewsRepository
+	repository newsRepo.NewsRepository
 }
 
-func NewExternalNewsService(repo repository.NewsRepository) *ExternalNewsService {
+func NewExternalNewsService(repo newsRepo.NewsRepository) *ExternalNewsService {
 	return &ExternalNewsService{
 		repository: repo,
 	}
@@ -52,8 +54,7 @@ func (s *ExternalNewsService) FetchTechNews(ctx context.Context) (*NewsResponse,
 	return &NewsResponse{News: techNews}, nil
 }
 
-// Add SearchNews method
-func (s *ExternalNewsService) SearchNews(ctx context.Context, keyword string) ([]repository.News, error) {
+func (s *ExternalNewsService) SearchNews(ctx context.Context, keyword string) ([]News, error) {
 	log.Printf("🔍 DEBUG: Service searching for: %s", keyword)
 
 	// Call repository search
@@ -84,7 +85,7 @@ func (s *ExternalNewsService) ValidateNewsSource(source string) bool {
 	return false
 }
 
-func (s *ExternalNewsService) FormatNewsForDiscord(news []repository.News) string {
+func (s *ExternalNewsService) FormatNewsForDiscord(news []News) string {
 	if len(news) == 0 {
 		return "📰 **Tech News Update**\n\nTidak ada berita teknologi terbaru saat ini."
 	}
@@ -116,14 +117,14 @@ func (s *ExternalNewsService) FormatNewsForDiscord(news []repository.News) strin
 	return result.String()
 }
 
-func (s *ExternalNewsService) filterTechNews(news []repository.News) []repository.News {
+func (s *ExternalNewsService) filterTechNews(news []News) []News {
 	techKeywords := []string{
 		"ai", "artificial intelligence", "technology", "tech", "software",
 		"programming", "computer", "mobile", "app", "startup", "innovation",
 		"quantum", "blockchain", "crypto", "web3", "machine learning", "cloud",
 	}
 
-	var filtered []repository.News
+	var filtered []News
 	for _, article := range news {
 		if s.containsTechKeywords(article, techKeywords) {
 			filtered = append(filtered, article)
@@ -138,7 +139,7 @@ func (s *ExternalNewsService) filterTechNews(news []repository.News) []repositor
 	return filtered
 }
 
-func (s *ExternalNewsService) containsTechKeywords(article repository.News, keywords []string) bool {
+func (s *ExternalNewsService) containsTechKeywords(article News, keywords []string) bool {
 	content := strings.ToLower(article.Title + " " + article.Description)
 
 	for _, keyword := range keywords {
@@ -149,7 +150,6 @@ func (s *ExternalNewsService) containsTechKeywords(article repository.News, keyw
 	return false
 }
 
-// Add TimeAgo helper method
 func (s *ExternalNewsService) TimeAgo(t time.Time) string {
 	now := time.Now()
 	diff := now.Sub(t)
@@ -171,8 +171,8 @@ func (s *ExternalNewsService) TimeAgo(t time.Time) string {
 	}
 }
 
-func (s *ExternalNewsService) filterSearchResults(results []repository.News, keyword string) []repository.News {
-	var filtered []repository.News
+func (s *ExternalNewsService) filterSearchResults(results []News, keyword string) []News {
+	var filtered []News
 
 	keywordLower := strings.ToLower(keyword)
 

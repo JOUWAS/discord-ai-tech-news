@@ -1,4 +1,4 @@
-package usecase
+package news
 
 import (
 	"context"
@@ -6,8 +6,7 @@ import (
 	"log"
 	"strings"
 
-	"discord-ai-tech-news/internal/repository"
-	"discord-ai-tech-news/internal/service"
+	newsService "discord-ai-tech-news/internal/services/news"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -24,17 +23,17 @@ func HandleDiscordMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 }
 
-type MessageUsecase struct {
-	newsService service.NewsService
+type NewsUsecase struct {
+	newsService newsService.NewsService
 }
 
-func NewMessageUsecase(newsService service.NewsService) *MessageUsecase {
-	return &MessageUsecase{
-		newsService: newsService,
+func NewNewsUsecase(service newsService.NewsService) *NewsUsecase {
+	return &NewsUsecase{
+		newsService: service,
 	}
 }
 
-func (u *MessageUsecase) ProcessMessage(ctx context.Context, content string) (string, error) {
+func (u *NewsUsecase) ProcessMessage(ctx context.Context, content string) (string, error) {
 	content = strings.TrimSpace(content)
 	command := strings.ToLower(content)
 
@@ -42,7 +41,7 @@ func (u *MessageUsecase) ProcessMessage(ctx context.Context, content string) (st
 	case "news", "berita", "tech", "teknologi":
 		return u.handleNewsRequest(ctx)
 	case "hello", "hi", "halo":
-		return "Hello! 👋 Saya adalah **AI Tech News Bot**\n\n🤖 Saya bisa membantu Anda mendapatkan berita teknologi terbaru!\n\n💡 Ketik `help` untuk melihat command yang tersedia.", nil
+		return u.greetingMessage(), nil
 	case "help", "bantuan":
 		return u.getHelpMessage(), nil
 	case "ping":
@@ -50,7 +49,6 @@ func (u *MessageUsecase) ProcessMessage(ctx context.Context, content string) (st
 	case "status":
 		return "✅ **Status Bot**: Online dan berjalan normal\n🔄 **Service**: News API Ready\n⚡ **Response Time**: < 1s", nil
 	default:
-		// Check if it's a search command
 		if strings.HasPrefix(command, "search ") || strings.HasPrefix(command, "cari ") {
 			keyword := strings.TrimPrefix(content, "search ")
 			keyword = strings.TrimPrefix(keyword, "cari ")
@@ -63,7 +61,11 @@ func (u *MessageUsecase) ProcessMessage(ctx context.Context, content string) (st
 	}
 }
 
-func (u *MessageUsecase) handleNewsRequest(ctx context.Context) (string, error) {
+func (u *NewsUsecase) greetingMessage() string {
+	return "Hello! 👋 Saya adalah **AI Tech News Bot**\n\n🤖 Saya bisa membantu Anda mendapatkan berita teknologi terbaru!\n\n💡 Ketik `help` untuk melihat command yang tersedia."
+}
+
+func (u *NewsUsecase) handleNewsRequest(ctx context.Context) (string, error) {
 	newsResponse, err := u.newsService.FetchTechNews(ctx)
 	if err != nil {
 		log.Printf("Error fetching news: %v", err)
@@ -77,7 +79,7 @@ func (u *MessageUsecase) handleNewsRequest(ctx context.Context) (string, error) 
 	return u.newsService.FormatNewsForDiscord(newsResponse.News), nil
 }
 
-func (u *MessageUsecase) handleSearchRequest(ctx context.Context, keyword string) (string, error) {
+func (u *NewsUsecase) handleSearchRequest(ctx context.Context, keyword string) (string, error) {
 	log.Printf("🔍 DEBUG: User searching for: %s", keyword)
 
 	// Call search function from news service
@@ -91,11 +93,10 @@ func (u *MessageUsecase) handleSearchRequest(ctx context.Context, keyword string
 		return fmt.Sprintf("🔍 **Hasil Pencarian: \"%s\"**\n\n❌ Tidak ditemukan berita yang relevan.\n\n💡 **Tips:**\n• Coba keyword yang lebih umum\n• Gunakan bahasa Inggris (misal: AI, blockchain, startup)\n• Atau ketik `news` untuk berita terbaru", keyword), nil
 	}
 
-	// Format results for Discord
 	return u.formatSearchResults(keyword, searchResults), nil
 }
 
-func (u *MessageUsecase) formatSearchResults(keyword string, results []repository.News) string {
+func (u *NewsUsecase) formatSearchResults(keyword string, results []newsService.News) string {
 	var response strings.Builder
 
 	response.WriteString(fmt.Sprintf("🔍 **Hasil Pencarian: \"%s\"**\n\n", keyword))
@@ -131,7 +132,7 @@ func (u *MessageUsecase) formatSearchResults(keyword string, results []repositor
 	return response.String()
 }
 
-func (u *MessageUsecase) getHelpMessage() string {
+func (u *NewsUsecase) getHelpMessage() string {
 	return `📋 **AI Tech News Bot - Command List**
 
 🔥 **Main Commands:**
@@ -156,7 +157,7 @@ func (u *MessageUsecase) getHelpMessage() string {
 ⚡ **Update**: Real-time news feed`
 }
 
-func (u *MessageUsecase) getUnknownCommandMessage() string {
+func (u *NewsUsecase) getUnknownCommandMessage() string {
 	return `❓ **Command tidak dikenal**
 
 🤔 Maaf, saya tidak mengerti command tersebut.

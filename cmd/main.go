@@ -13,11 +13,15 @@ import (
 
 	"discord-ai-tech-news/config"
 	"discord-ai-tech-news/internal/bot"
-	discordHandler "discord-ai-tech-news/internal/handler/discord"
+
+	// News Bot imports
+	newsHandler "discord-ai-tech-news/internal/handlers/news"
+	newsRepo "discord-ai-tech-news/internal/repositories/news"
+	newsService "discord-ai-tech-news/internal/services/news"
+	newsUsecase "discord-ai-tech-news/internal/usecases/news"
+
+	// HTTP handler
 	httpHandler "discord-ai-tech-news/internal/handler/http"
-	"discord-ai-tech-news/internal/repository"
-	"discord-ai-tech-news/internal/service"
-	"discord-ai-tech-news/internal/usecase"
 )
 
 func main() {
@@ -29,14 +33,14 @@ func main() {
 	}
 
 	// Build dependencies dari luar ke dalam
-	newsRepo := repository.NewNewsApiRepository()
-	newsService := service.NewExternalNewsService(newsRepo)
-	messageUsecase := usecase.NewMessageUsecase(newsService)
-	messageHandler := discordHandler.NewMessageHandler(messageUsecase)
+	newsRepository := newsRepo.NewNewsApiRepository()
+	newsServiceImpl := newsService.NewExternalNewsService(newsRepository)
+	newsUsecaseImpl := newsUsecase.NewNewsUsecase(newsServiceImpl)
+	newsHandlerImpl := newsHandler.NewNewsHandler(newsUsecaseImpl)
 
 	// Production
-	bot := bot.NewDiscordBot(cfg.DiscordToken, messageHandler)
-	defer bot.Close()
+	newsBot := bot.NewDiscordBot(cfg.DiscordToken, newsHandlerImpl)
+	defer newsBot.Close()
 
 	// Start Gin HTTP server
 	router := gin.Default()
