@@ -27,9 +27,11 @@ discord-ai-tech-news/
 │   │   │   └── message_handler.go  # Discord message handling
 │   │   └── http/
 │   │       └── routes.go   # HTTP routes and handlers
+│   ├── repository/        # Data access layer
 │   ├── service/           # Business logic services
 │   └── usecase/
 │       └── message_usecase.go  # Message processing logic
+├── .air.toml              # Air hot reload configuration
 ├── .env.example           # Environment variables template
 ├── go.mod                # Go module dependencies
 └── README.md             # This file
@@ -40,6 +42,7 @@ discord-ai-tech-news/
 - Go 1.23.5 or higher
 - Discord Bot Token
 - Discord Server with appropriate permissions
+- [Air](https://github.com/cosmtrek/air) for hot reload development (optional)
 
 ## ⚙️ Installation
 
@@ -54,7 +57,12 @@ discord-ai-tech-news/
    go mod tidy
    ```
 
-3. **Set up environment variables**
+3. **Install Air for hot reload (optional)**
+   ```bash
+   go install github.com/cosmtrek/air@latest
+   ```
+
+4. **Set up environment variables**
    ```bash
    cp .env.example .env
    ```
@@ -65,14 +73,19 @@ discord-ai-tech-news/
    APP_PORT=8080
    ```
 
-4. **Build the application**
+5. **Build the application**
    ```bash
    go build ./cmd
    ```
 
 ## 🏃‍♂️ Running the Application
 
-### Development Mode
+### Development Mode with Hot Reload (Recommended)
+```bash
+air
+```
+
+### Development Mode (Standard)
 ```bash
 go run ./cmd
 ```
@@ -150,12 +163,37 @@ Response:
 
 ## 🎯 Bot Commands
 
-Currently, the bot responds to:
-- `hello` - Responds with a greeting message
+The bot supports the following commands in the "🔥┃ai-tech-news" channel:
+
+### News Commands
+- `news`, `berita`, `tech`, `teknologi` - Get latest tech news
+- `search <keyword>`, `cari <keyword>` - Search news (coming soon)
+
+### General Commands  
+- `hello`, `hi`, `halo` - Greet the bot
+- `help`, `bantuan` - Show available commands
+- `ping` - Check bot connection
+- `status` - View bot status
 
 *Note: The bot only responds in channels named "🔥┃ai-tech-news"*
 
 ## 🔨 Development
+
+### Hot Reload Development
+
+This project supports hot reload using Air for faster development:
+
+1. **Install Air** (if not already installed):
+   ```bash
+   go install github.com/cosmtrek/air@latest
+   ```
+
+2. **Start development with hot reload**:
+   ```bash
+   air
+   ```
+
+3. **Air Configuration**: The project includes `.air.toml` for custom configuration
 
 ### Adding New Commands
 
@@ -177,6 +215,13 @@ This project follows Clean Architecture principles:
 - **internal/handler/**: Input handlers (HTTP and Discord)
 - **internal/usecase/**: Business logic
 - **internal/service/**: External service integrations
+- **internal/repository/**: Data access layer
+
+### Development Tools
+
+- **Air**: Hot reload for Go applications during development
+- **Gin**: HTTP web framework with built-in middleware
+- **DiscordGo**: Official Discord API wrapper for Go
 
 ## 🧪 Testing
 
@@ -193,6 +238,10 @@ go test -cover ./...
 - [discordgo](https://github.com/bwmarrin/discordgo) - Discord API wrapper
 - [gin](https://github.com/gin-gonic/gin) - HTTP web framework
 - [godotenv](https://github.com/joho/godotenv) - Environment variable loading
+
+### Development Dependencies
+
+- [air](https://github.com/cosmtrek/air) - Hot reload for Go applications
 
 ## 🤝 Contributing
 
@@ -222,6 +271,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 3. **Environment variables not loading**
    - Make sure `.env` file exists in the project root
    - Check that `TOKEN` is properly set
+
+4. **Hot reload not working**
+   - Ensure Air is properly installed: `go install github.com/cosmtrek/air@latest`
+   - Check if `.air.toml` configuration file exists
+   - Try running `air -v` to verify Air installation
 
 ### Logs
 
