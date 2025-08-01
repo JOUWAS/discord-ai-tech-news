@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"discord-ai-tech-news/config"
-	"discord-ai-tech-news/internal/bot"
+	botPkg "discord-ai-tech-news/internal/bot"
 	discordHandler "discord-ai-tech-news/internal/handler/discord"
 	httpHandler "discord-ai-tech-news/internal/handler/http"
 	"discord-ai-tech-news/internal/repository"
@@ -34,9 +34,16 @@ func main() {
 	messageUsecase := usecase.NewMessageUsecase(newsService)
 	messageHandler := discordHandler.NewMessageHandler(messageUsecase)
 
-	// Production
-	bot := bot.NewDiscordBot(cfg.DiscordToken, messageHandler)
+	// Initialize Discord bot first
+	bot := botPkg.NewDiscordBot(cfg.DiscordToken, messageHandler)
 	defer bot.Close()
+
+	// Initialize cron service dengan Discord bot
+	cronService := service.NewCronService(newsService, bot)
+
+	if err := cronService.Start(); err != nil {
+		log.Fatalf("Failed to start cron service: %s", err)
+	}
 
 	// Start Gin HTTP server
 	router := gin.Default()
@@ -60,6 +67,11 @@ func main() {
 	<-quit
 
 	log.Println("Shutting down server...")
+
+	if err := cronService.Stop(); err != nil {
+		log.Printf("Error stopping cron service: %s", err)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	srv.Shutdown(ctx)
