@@ -57,7 +57,7 @@ func (h *MessageHandler) HandleMessage(s *discordgo.Session, m *discordgo.Messag
 	}
 
 	// Only respond in specific channel
-	if channel.Name != "🔥┃ai-tech-news" {
+	if channel.Name != "🔥┃ai-tech-news" && channel.Name != "🕹️┃dev-talk" {
 		return
 	}
 

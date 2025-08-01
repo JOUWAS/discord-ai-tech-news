@@ -60,7 +60,7 @@ discord-ai-tech-news/
 
 3. **Install Air for hot reload (optional)**
    ```bash
-   go install github.com/cosmtrek/air@latest
+   go install github.com/air-verse/air@latest
    ```
 
 4. **Set up environment variables**
