@@ -37,14 +37,22 @@ func NewMessageUsecase(newsService service.NewsService) *MessageUsecase {
 
 func (u *MessageUsecase) ProcessMessage(ctx context.Context, content string) (string, error) {
 	content = strings.TrimSpace(content)
-	command := strings.ToLower(content)
+	originalCommand := strings.ToLower(content)
 
 	botPrefixes := []string{"/", "!"}
+	hasPrefix := false
+	command := originalCommand
+
 	for _, prefix := range botPrefixes {
-		if strings.HasPrefix(command, prefix) {
-			command = strings.TrimPrefix(command, prefix)
+		if strings.HasPrefix(originalCommand, prefix) {
+			command = strings.TrimPrefix(originalCommand, prefix)
+			hasPrefix = true
 			break
 		}
+	}
+
+	if !hasPrefix {
+		return "", nil
 	}
 
 	switch command {
@@ -52,7 +60,7 @@ func (u *MessageUsecase) ProcessMessage(ctx context.Context, content string) (st
 		return u.handleNewsRequest(ctx)
 	case "hello", "hi", "halo", "hallo":
 		resp := response.NewBotResponse("hello").
-			WithDisplayText("Hello! 👋 Saya adalah **AI Tech News Bot**\n\n🤖 Saya bisa membantu Anda mendapatkan berita teknologi terbaru!\n\n💡 Ketik `help` untuk melihat command yang tersedia.").
+			WithDisplayText("Hello! 👋 Saya adalah **AI Tech News Bot Dev**\n\n🤖 Saya bisa membantu Anda mendapatkan berita teknologi terbaru!\n\n💡 Ketik `help` untuk melihat command yang tersedia.").
 			Build().(*response.BotResponse)
 		return u.formatter.FormatBotResponse(resp), nil
 	case "help", "bantuan":
@@ -77,7 +85,7 @@ func (u *MessageUsecase) ProcessMessage(ctx context.Context, content string) (st
 	default:
 		// Check if it's a search command
 		if strings.HasPrefix(command, "search ") || strings.HasPrefix(command, "cari ") {
-			keyword := strings.TrimPrefix(content, "search ")
+			keyword := strings.TrimPrefix(command, "search ")
 			keyword = strings.TrimPrefix(keyword, "cari ")
 			keyword = strings.TrimSpace(keyword)
 			if keyword != "" {
@@ -153,7 +161,24 @@ func (u *MessageUsecase) handleSearchRequest(ctx context.Context, keyword string
 // ProcessMessageWithContext processes a message with user and channel context
 func (u *MessageUsecase) ProcessMessageWithContext(ctx context.Context, content, userID, username, channelID, channelName string) (string, error) {
 	content = strings.TrimSpace(content)
-	command := strings.ToLower(content)
+	originalCommand := strings.ToLower(content)
+
+	botPrefixes := []string{"/", "!"}
+	hasPrefix := false
+	command := originalCommand
+
+	for _, prefix := range botPrefixes {
+		if strings.HasPrefix(originalCommand, prefix) {
+			command = strings.TrimPrefix(originalCommand, prefix)
+			hasPrefix = true
+			break
+		}
+	}
+
+	// If no prefix found, ignore the message
+	if !hasPrefix {
+		return "", nil // Return empty string to indicate message should be ignored
+	}
 
 	switch command {
 	case "news", "berita", "tech", "teknologi":
@@ -191,7 +216,7 @@ func (u *MessageUsecase) ProcessMessageWithContext(ctx context.Context, content,
 	default:
 		// Check if it's a search command
 		if strings.HasPrefix(command, "search ") || strings.HasPrefix(command, "cari ") {
-			keyword := strings.TrimPrefix(content, "search ")
+			keyword := strings.TrimPrefix(command, "search ")
 			keyword = strings.TrimPrefix(keyword, "cari ")
 			keyword = strings.TrimSpace(keyword)
 			if keyword != "" {
@@ -208,9 +233,43 @@ func (u *MessageUsecase) ProcessMessageWithContext(ctx context.Context, content,
 }
 
 func (u *MessageUsecase) getHelpMessage() string {
-	return `📋 **AI Tech News Bot - Command List**\n\n🔥 **Main Commands:**\n• ` + "`news`" + ` atau ` + "`berita`" + ` - Dapatkan berita teknologi terbaru\n• ` + "`hello`" + ` atau ` + "`hi`" + ` - Sapa bot dan akan return nama\n• ` + "`help`" + ` atau ` + "`bantuan`" + ` - Tampilkan menu ini\n• ` + "`ping`" + ` - Cek status koneksi bot\n• ` + "`status`" + ` - Lihat status bot\n\n🔍 **Search Commands** *(Aktif)*:\n• ` + "`search <keyword>`" + ` - Cari berita berdasarkan kata kunci\n• ` + "`cari <keyword>`" + ` - Pencarian dalam bahasa Indonesia\n\n📝 **Contoh Pencarian:**\n• ` + "`search AI`" + ` - Cari berita tentang AI\n• ` + "`cari blockchain`" + ` - Cari berita blockchain\n• ` + "`search startup`" + ` - Cari berita startup\n\n---\n🤖 **About**: Saya adalah bot yang menyediakan berita teknologi terbaru dari berbagai sumber terpercaya.\n� **Sources**: TechCrunch, Wired, The Verge, dan lainnya.\n⚡ **Update**: Real-time news feed`
+	return `📋 **AI Tech News Bot - Command List**
+
+🔥 **Main Commands:**
+• ` + "`/news`" + ` atau ` + "`!berita`" + ` - Dapatkan berita teknologi terbaru
+• ` + "`/hello`" + ` atau ` + "`!hi`" + ` - Sapa bot
+• ` + "`/help`" + ` atau ` + "`!bantuan`" + ` - Tampilkan menu ini
+• ` + "`/ping`" + ` - Cek status koneksi bot
+• ` + "`/status`" + ` - Lihat status bot
+
+🔍 **Search Commands**:
+• ` + "`/search <keyword>`" + ` - Cari berita berdasarkan kata kunci
+• ` + "`!cari <keyword>`" + ` - Pencarian dalam bahasa Indonesia
+
+📝 **Contoh Penggunaan:**
+• ` + "`/search AI`" + ` - Cari berita tentang AI
+• ` + "`!cari blockchain`" + ` - Cari berita blockchain
+• ` + "`/search startup`" + ` - Cari berita startup
+
+💡 **Tips**: Gunakan prefix ` + "`/`" + ` atau ` + "`!`" + ` di awal command
+
+---
+🤖 **About**: Saya adalah bot yang menyediakan berita teknologi terbaru dari berbagai sumber terpercaya.
+📡 **Sources**: Hacker News dan sumber terpercaya lainnya.
+⚡ **Update**: Real-time news feed`
 }
 
 func (u *MessageUsecase) getUnknownCommandMessage() string {
-	return `❓ **Command tidak dikenal**\n\n🤔 Maaf, saya tidak mengerti command tersebut.\n\n💡 **Coba command ini:**\n• ` + "`news`" + ` - Berita teknologi terbaru\n• ` + "`hello`" + ` - Sapa bot\n• ` + "`help`" + ` - Lihat semua command\n\n📝 **Tips**: Pastikan ejaan command benar dan tanpa typo!`
+	return `❓ **Command tidak dikenal**
+
+🤔 Maaf, saya tidak mengerti command tersebut.
+
+💡 **Coba command ini:**
+• ` + "`/news`" + ` - Berita teknologi terbaru
+• ` + "`/hello`" + ` - Sapa bot
+• ` + "`/help`" + ` - Lihat semua command
+
+📝 **Tips**: 
+• Gunakan prefix ` + "`/`" + ` atau ` + "`!`" + ` di awal command
+• Pastikan ejaan command benar dan tanpa typo!`
 }

@@ -65,6 +65,10 @@ func (h *MessageHandler) HandleMessage(s *discordgo.Session, m *discordgo.Messag
 	ctx := context.Background()
 	response, err := h.usecase.ProcessMessage(ctx, m.Content)
 
+	if response == "" && err == nil {
+		return
+	}
+
 	if err != nil {
 		log.Printf("Error processing message from %s: %v", m.Author.Username, err)
 		response = "❌ **Terjadi kesalahan sistem**\n\n🔄 Silakan coba lagi dalam beberapa saat."
