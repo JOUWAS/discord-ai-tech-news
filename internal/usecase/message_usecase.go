@@ -39,10 +39,18 @@ func (u *MessageUsecase) ProcessMessage(ctx context.Context, content string) (st
 	content = strings.TrimSpace(content)
 	command := strings.ToLower(content)
 
+	botPrefixes := []string{"/", "!"}
+	for _, prefix := range botPrefixes {
+		if strings.HasPrefix(command, prefix) {
+			command = strings.TrimPrefix(command, prefix)
+			break
+		}
+	}
+
 	switch command {
 	case "news", "berita", "tech", "teknologi":
 		return u.handleNewsRequest(ctx)
-	case "hello", "hi", "halo":
+	case "hello", "hi", "halo", "hallo":
 		resp := response.NewBotResponse("hello").
 			WithDisplayText("Hello! 👋 Saya adalah **AI Tech News Bot**\n\n🤖 Saya bisa membantu Anda mendapatkan berita teknologi terbaru!\n\n💡 Ketik `help` untuk melihat command yang tersedia.").
 			Build().(*response.BotResponse)
