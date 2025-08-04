@@ -37,3 +37,6 @@ Thumbs.db
 
 # Environment variables
 .env
+
+# others
+TIMEZONE_CONFIG.md

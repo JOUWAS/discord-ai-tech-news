@@ -35,27 +35,31 @@ func NewCronService(newsService NewsService, discordBot DiscordBotInterface) *Cr
 }
 
 func (cs *CronService) Start() error {
-	// Auto news pada jam 08:00
+	// Frankfurt is GMT+1 (GMT+2 during daylight saving)
+	// To achieve GMT+7 timing, we need to subtract 6 hours (or 5 during daylight saving)
+	// For safety, let's use 6 hours offset consistently
+
+	// Auto news pada jam 08:00 WIB = 02:00 Frankfurt time
 	_, err := cs.scheduler.NewJob(
-		gocron.CronJob("0 8 * * *", false), // Setiap hari jam 08:00
+		gocron.CronJob("0 2 * * *", false), // 02:00 Frankfurt = 08:00 WIB
 		gocron.NewTask(cs.sendMorningNews),
 	)
 	if err != nil {
 		return err
 	}
 
-	// Auto news pada jam 13:00
+	// Auto news pada jam 13:00 WIB = 07:00 Frankfurt time
 	_, err = cs.scheduler.NewJob(
-		gocron.CronJob("0 13 * * *", false), // Setiap hari jam 13:00
+		gocron.CronJob("0 7 * * *", false), // 07:00 Frankfurt = 13:00 WIB
 		gocron.NewTask(cs.sendAfternoonNews),
 	)
 	if err != nil {
 		return err
 	}
 
-	// Auto news pada jam 17:00
+	// Auto news pada jam 17:00 WIB = 11:00 Frankfurt time
 	_, err = cs.scheduler.NewJob(
-		gocron.CronJob("0 17 * * *", false), // Setiap hari jam 17:00
+		gocron.CronJob("0 11 * * *", false), // 11:00 Frankfurt = 17:00 WIB
 		gocron.NewTask(cs.sendEveningNews),
 	)
 	if err != nil {
@@ -71,10 +75,21 @@ func (cs *CronService) Start() error {
 		return err
 	}
 
+	// Test news job - 00:20 WIB = 18:20 Frankfurt time
+	_, err = cs.scheduler.NewJob(
+		gocron.CronJob("25 18 * * *", false), // 18:20 Frankfurt = 00:20 WIB
+		gocron.NewTask(cs.sendTestNews),
+	)
+	if err != nil {
+		return err
+	}
+
 	cs.scheduler.Start()
 	log.Println("✅ Cron service started successfully")
-	log.Println("📅 Auto news scheduled at: 08:00, 13:00, 17:00")
+	log.Println("📅 Auto news scheduled at: 08:00, 13:00, 17:00 WIB (02:00, 07:00, 11:00 Frankfurt)")
+	log.Println("🧪 Test news scheduled at: 00:25 WIB (18:25 Frankfurt)")
 	log.Println("🔄 Service health check: every minute")
+	log.Println("🌍 Timezone: Adjusted for Frankfurt deployment to match GMT+7 (WIB)")
 	return nil
 }
 
@@ -83,22 +98,43 @@ func (cs *CronService) Stop() error {
 	return cs.scheduler.Shutdown()
 }
 
-// Job untuk mengirim berita pagi (08:00)
+// Helper function to get current time in WIB (GMT+7)
+func (cs *CronService) getWIBTime() time.Time {
+	// Load WIB timezone (GMT+7)
+	wibLocation, err := time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		// Fallback: manually create GMT+7 offset
+		wibLocation = time.FixedZone("WIB", 7*60*60) // 7 hours * 60 minutes * 60 seconds
+	}
+	return time.Now().In(wibLocation)
+}
+
+// Job untuk mengirim berita pagi (08:00 WIB)
 func (cs *CronService) sendMorningNews() {
-	log.Println("🌅 [AUTO NEWS] Sending morning tech news...")
+	wibTime := cs.getWIBTime()
+	log.Printf("🌅 [AUTO NEWS] Sending morning tech news... (WIB: %s)", wibTime.Format("15:04"))
 	cs.sendAutoNews("🌅 **Good Morning! Tech News Update**")
 }
 
-// Job untuk mengirim berita siang (13:00)
+// Job untuk mengirim berita siang (13:00 WIB)
 func (cs *CronService) sendAfternoonNews() {
-	log.Println("🌞 [AUTO NEWS] Sending afternoon tech news...")
+	wibTime := cs.getWIBTime()
+	log.Printf("🌞 [AUTO NEWS] Sending afternoon tech news... (WIB: %s)", wibTime.Format("15:04"))
 	cs.sendAutoNews("🌞 **Afternoon Tech News Update**")
 }
 
-// Job untuk mengirim berita sore (17:00)
+// Job untuk mengirim berita sore (17:00 WIB)
 func (cs *CronService) sendEveningNews() {
-	log.Println("🌆 [AUTO NEWS] Sending evening tech news...")
+	wibTime := cs.getWIBTime()
+	log.Printf("🌆 [AUTO NEWS] Sending evening tech news... (WIB: %s)", wibTime.Format("15:04"))
 	cs.sendAutoNews("🌆 **Evening Tech News Update**")
+}
+
+// Job untuk mengirim berita test (00:20 WIB)
+func (cs *CronService) sendTestNews() {
+	wibTime := cs.getWIBTime()
+	log.Printf("🧪 [TEST NEWS] Sending test tech news... (WIB: %s)", wibTime.Format("15:04"))
+	cs.sendAutoNews("🧪 **Test News Update - 00:25 WIB**")
 }
 
 // Fungsi utama untuk mengambil dan mengirim berita
@@ -134,8 +170,10 @@ func (cs *CronService) formatNewsMessage(header string, newsResponse *NewsRespon
 	// Gunakan formatter yang sudah ada di NewsService
 	formattedNews := cs.newsService.FormatNewsForDiscord(newsResponse.News)
 
+	// Use WIB time for the timestamp
+	wibTime := cs.getWIBTime()
 	message := header + "\n\n" + formattedNews
-	message += "\n\n---\n🤖 *Auto News Update* • " + time.Now().Format("15:04 WIB")
+	message += "\n\n---\n🤖 *Auto News Update* • " + wibTime.Format("15:04 WIB")
 
 	return message
 }
@@ -185,15 +223,17 @@ func (cs *CronService) pingStartEndpoint() {
 	// Make POST request to /start endpoint
 	resp, err := client.Post(serverURL+"/start", "application/json", nil)
 	if err != nil {
-		log.Printf("⚠️ [HEALTH CHECK] Failed to ping /start endpoint: %v", err)
+		wibTime := cs.getWIBTime()
+		log.Printf("⚠️ [HEALTH CHECK] Failed to ping /start endpoint: %v (WIB: %s)", err, wibTime.Format("15:04:05"))
 		return
 	}
 	defer resp.Body.Close()
 
 	// Check response status
+	wibTime := cs.getWIBTime()
 	if resp.StatusCode == http.StatusOK {
-		log.Printf("✅ [HEALTH CHECK] Successfully pinged /start endpoint - %s", time.Now().Format("15:04:05"))
+		log.Printf("✅ [HEALTH CHECK] Successfully pinged /start endpoint (WIB: %s)", wibTime.Format("15:04:05"))
 	} else {
-		log.Printf("⚠️ [HEALTH CHECK] /start endpoint returned status %d - %s", resp.StatusCode, time.Now().Format("15:04:05"))
+		log.Printf("⚠️ [HEALTH CHECK] /start endpoint returned status %d (WIB: %s)", resp.StatusCode, wibTime.Format("15:04:05"))
 	}
 }
