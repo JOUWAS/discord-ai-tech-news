@@ -2,8 +2,14 @@ package usecase
 
 import (
 	"context"
+ 	"encoding/json"
+	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"os"
 	"strings"
+	"time"
 
 	"discord-ai-tech-news/internal/response"
 	"discord-ai-tech-news/internal/service"
@@ -82,6 +88,8 @@ func (u *MessageUsecase) ProcessMessage(ctx context.Context, content string) (st
 			WithServices(services).
 			Build().(*response.StatusResponse)
 		return u.formatter.FormatStatusResponse(resp), nil
+	case "cron", "schedule", "jadwal":
+		return u.handleCronStatusRequest(ctx)
 	default:
 		// Check if it's a search command
 		if strings.HasPrefix(command, "search ") || strings.HasPrefix(command, "cari ") {
@@ -158,6 +166,97 @@ func (u *MessageUsecase) handleSearchRequest(ctx context.Context, keyword string
 	return u.formatter.FormatSearchResponse(searchResp), nil
 }
 
+func (u *MessageUsecase) handleCronStatusRequest(ctx context.Context) (string, error) {
+	// Get the server URL from environment or use default
+	serverURL := os.Getenv("SERVER_URL")
+	if serverURL == "" {
+		serverURL = "http://localhost:8080" // Default local server
+	}
+
+	// Make HTTP request to /health/cron endpoint
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Get(serverURL + "/health/cron")
+	if err != nil {
+		log.Printf("❌ ERROR: Failed to fetch cron status: %v", err)
+
+		// Create error response
+		errorResp := response.NewBotResponse("cron").
+			WithDisplayText("❌ **Error**: Tidak dapat mengakses status cron jobs\n\n" +
+				"🔧 **Possible Issues:**\n" +
+				"• Server tidak berjalan\n" +
+				"• Koneksi network bermasalah\n" +
+				"• Endpoint `/health/cron` tidak tersedia").
+			Build().(*response.BotResponse)
+
+		return u.formatter.FormatBotResponse(errorResp), err
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("❌ ERROR: Failed to read response body: %v", err)
+
+		errorResp := response.NewBotResponse("cron").
+			WithDisplayText("❌ **Error**: Gagal membaca response dari server").
+			Build().(*response.BotResponse)
+
+		return u.formatter.FormatBotResponse(errorResp), err
+	}
+
+	// Parse JSON response
+	var cronData map[string]interface{}
+	if err := json.Unmarshal(body, &cronData); err != nil {
+		log.Printf("❌ ERROR: Failed to parse JSON: %v", err)
+
+		errorResp := response.NewBotResponse("cron").
+			WithDisplayText("❌ **Error**: Gagal memparse response JSON dari server").
+			Build().(*response.BotResponse)
+
+		return u.formatter.FormatBotResponse(errorResp), err
+	}
+
+	// Build the response message
+	var message strings.Builder
+	message.WriteString("📅 **Cron Jobs Status**\n\n")
+
+	// Status
+	if status, ok := cronData["status"].(string); ok {
+		message.WriteString(fmt.Sprintf("🔥 **Status**: %s\n\n", status))
+	}
+
+	// Cron Jobs
+	if cronJobs, ok := cronData["cron_jobs"].(map[string]interface{}); ok {
+		message.WriteString("⏰ **Scheduled Jobs:**\n")
+		for jobName, schedule := range cronJobs {
+			message.WriteString(fmt.Sprintf("• **%s**: %s\n", jobName, schedule))
+		}
+		message.WriteString("\n")
+	}
+
+	// Timezone
+	if timezone, ok := cronData["timezone"].(string); ok {
+		message.WriteString(fmt.Sprintf("🌍 **Timezone**: %s\n", timezone))
+	}
+
+	// Last Check
+	if lastCheck, ok := cronData["last_check"].(string); ok {
+		message.WriteString(fmt.Sprintf("🕐 **Last Check**: %s\n", lastCheck))
+	}
+
+	message.WriteString("\n💡 **Info**: Data diambil dari endpoint `/health/cron`")
+
+	// Create successful response
+	successResp := response.NewBotResponse("cron").
+		WithDisplayText(message.String()).
+		Build().(*response.BotResponse)
+
+	return u.formatter.FormatBotResponse(successResp), nil
+}
+
 // ProcessMessageWithContext processes a message with user and channel context
 func (u *MessageUsecase) ProcessMessageWithContext(ctx context.Context, content, userID, username, channelID, channelName string) (string, error) {
 	content = strings.TrimSpace(content)
@@ -213,6 +312,8 @@ func (u *MessageUsecase) ProcessMessageWithContext(ctx context.Context, content,
 			WithServices(services).
 			Build().(*response.StatusResponse)
 		return u.formatter.FormatStatusResponse(resp), nil
+	case "cron", "schedule", "jadwal":
+		return u.handleCronStatusRequest(ctx)
 	default:
 		// Check if it's a search command
 		if strings.HasPrefix(command, "search ") || strings.HasPrefix(command, "cari ") {
@@ -241,6 +342,7 @@ func (u *MessageUsecase) getHelpMessage() string {
 • ` + "`/help`" + ` atau ` + "`!bantuan`" + ` - Tampilkan menu ini
 • ` + "`/ping`" + ` - Cek status koneksi bot
 • ` + "`/status`" + ` - Lihat status bot
+• ` + "`/cron`" + ` atau ` + "`!jadwal`" + ` - Lihat status cron jobs
 
 🔍 **Search Commands**:
 • ` + "`/search <keyword>`" + ` - Cari berita berdasarkan kata kunci
@@ -249,7 +351,8 @@ func (u *MessageUsecase) getHelpMessage() string {
 📝 **Contoh Penggunaan:**
 • ` + "`/search AI`" + ` - Cari berita tentang AI
 • ` + "`!cari blockchain`" + ` - Cari berita blockchain
-• ` + "`/search startup`" + ` - Cari berita startup
+• ` + "`/search startup`" + ` - Cari berita startup  
+• ` + "`/cron`" + ` - Cek jadwal cron jobs
 
 💡 **Tips**: Gunakan prefix ` + "`/`" + ` atau ` + "`!`" + ` di awal command
 
