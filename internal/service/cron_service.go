@@ -75,19 +75,28 @@ func (cs *CronService) Start() error {
 		return err
 	}
 
-	// Test news job - 00:20 WIB = 18:20 Frankfurt time
+	// Test news job - 00:40 WIB = 18:40 Frankfurt time
 	_, err = cs.scheduler.NewJob(
-		gocron.CronJob("25 18 * * *", false), // 18:20 Frankfurt = 00:20 WIB
+		gocron.CronJob("45 18 * * *", false), // 18:40 Frankfurt = 00:40 WIB
 		gocron.NewTask(cs.sendTestNews),
 	)
 	if err != nil {
 		return err
 	}
 
+	// Immediate test job - every minute for debugging
+	// _, err = cs.scheduler.NewJob(
+	// 	gocron.CronJob("* * * * *", false), // Every minute
+	// 	gocron.NewTask(cs.sendImmediateTestNews),
+	// )
+	// if err != nil {
+	// 	return err
+	// }
+
 	cs.scheduler.Start()
 	log.Println("✅ Cron service started successfully")
 	log.Println("📅 Auto news scheduled at: 08:00, 13:00, 17:00 WIB (02:00, 07:00, 11:00 Frankfurt)")
-	log.Println("🧪 Test news scheduled at: 00:25 WIB (18:25 Frankfurt)")
+	log.Println("🧪 Test news scheduled at: 00:40 WIB (18:40 Frankfurt)")
 	log.Println("🔄 Service health check: every minute")
 	log.Println("🌍 Timezone: Adjusted for Frankfurt deployment to match GMT+7 (WIB)")
 	return nil
@@ -130,12 +139,19 @@ func (cs *CronService) sendEveningNews() {
 	cs.sendAutoNews("🌆 **Evening Tech News Update**")
 }
 
-// Job untuk mengirim berita test (00:20 WIB)
+// Job untuk mengirim berita test (00:40 WIB)
 func (cs *CronService) sendTestNews() {
 	wibTime := cs.getWIBTime()
 	log.Printf("🧪 [TEST NEWS] Sending test tech news... (WIB: %s)", wibTime.Format("15:04"))
-	cs.sendAutoNews("🧪 **Test News Update - 00:25 WIB**")
+	cs.sendAutoNews("🧪 **Test News Update - 00:40 WIB**")
 }
+
+// Job untuk mengirim berita test immediate (setiap menit untuk debugging)
+// func (cs *CronService) sendImmediateTestNews() {
+// 	wibTime := cs.getWIBTime()
+// 	log.Printf("⚡ [IMMEDIATE TEST] Sending immediate test news... (WIB: %s)", wibTime.Format("15:04:05"))
+// 	cs.sendAutoNews("⚡ **Immediate Test News - Every Minute**")
+// }
 
 // Fungsi utama untuk mengambil dan mengirim berita
 func (cs *CronService) sendAutoNews(header string) {
