@@ -77,7 +77,7 @@ func (cs *CronService) Start() error {
 
 	// Test news job - 00:40 WIB = 18:40 Frankfurt time
 	_, err = cs.scheduler.NewJob(
-		gocron.CronJob("40 18 * * *", false), // 18:40 Frankfurt = 00:40 WIB
+		gocron.CronJob("45 18 * * *", false), // 18:40 Frankfurt = 00:40 WIB
 		gocron.NewTask(cs.sendTestNews),
 	)
 	if err != nil {
