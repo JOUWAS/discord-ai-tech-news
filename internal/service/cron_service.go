@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"log"
+	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
@@ -60,9 +62,19 @@ func (cs *CronService) Start() error {
 		return err
 	}
 
+	// Service health check - every minute
+	_, err = cs.scheduler.NewJob(
+		gocron.CronJob("* * * * *", false), // Setiap menit
+		gocron.NewTask(cs.pingStartEndpoint),
+	)
+	if err != nil {
+		return err
+	}
+
 	cs.scheduler.Start()
 	log.Println("✅ Cron service started successfully")
 	log.Println("📅 Auto news scheduled at: 08:00, 13:00, 17:00")
+	log.Println("🔄 Service health check: every minute")
 	return nil
 }
 
@@ -155,4 +167,33 @@ func (cs *CronService) sendToDiscord(message string) {
 // Hello World job untuk testing
 func (cs *CronService) helloWorldJob() {
 	log.Printf("👋 [HELLO WORLD] Hello World! - %s", time.Now().Format("15:04:05"))
+}
+
+// Ping start endpoint setiap menit untuk menjaga service tetap aktif
+func (cs *CronService) pingStartEndpoint() {
+	// Get server URL from environment or use default
+	serverURL := os.Getenv("SERVER_URL")
+	if serverURL == "" {
+		serverURL = "http://localhost:8080" // Default local server
+	}
+
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	// Make POST request to /start endpoint
+	resp, err := client.Post(serverURL+"/start", "application/json", nil)
+	if err != nil {
+		log.Printf("⚠️ [HEALTH CHECK] Failed to ping /start endpoint: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Check response status
+	if resp.StatusCode == http.StatusOK {
+		log.Printf("✅ [HEALTH CHECK] Successfully pinged /start endpoint - %s", time.Now().Format("15:04:05"))
+	} else {
+		log.Printf("⚠️ [HEALTH CHECK] /start endpoint returned status %d - %s", resp.StatusCode, time.Now().Format("15:04:05"))
+	}
 }
