@@ -24,7 +24,6 @@ func RegisterRoutes(r *gin.Engine) {
 				"morning_news":   "08:00 WIB (02:00 Frankfurt)",
 				"afternoon_news": "13:00 WIB (07:00 Frankfurt)",
 				"evening_news":   "17:00 WIB (11:00 Frankfurt)",
-				"test_news":      "00:25 WIB (18:25 Frankfurt)",
 				"service_health": "every minute",
 			},
 			"deployment_timezone": "Frankfurt (GMT+1/GMT+2)",
