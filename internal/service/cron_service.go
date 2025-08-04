@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -41,7 +42,7 @@ func (cs *CronService) Start() error {
 
 	// Auto news pada jam 08:00 WIB = 02:00 Frankfurt time
 	_, err := cs.scheduler.NewJob(
-		gocron.CronJob("0 2 * * *", false), // 02:00 Frankfurt = 08:00 WIB
+		gocron.CronJob("0 1 * * *", false), // 02:00 Frankfurt = 08:00 WIB
 		gocron.NewTask(cs.sendMorningNews),
 	)
 	if err != nil {
@@ -50,7 +51,7 @@ func (cs *CronService) Start() error {
 
 	// Auto news pada jam 13:00 WIB = 07:00 Frankfurt time
 	_, err = cs.scheduler.NewJob(
-		gocron.CronJob("0 7 * * *", false), // 07:00 Frankfurt = 13:00 WIB
+		gocron.CronJob("0 6 * * *", false),
 		gocron.NewTask(cs.sendAfternoonNews),
 	)
 	if err != nil {
@@ -75,9 +76,8 @@ func (cs *CronService) Start() error {
 		return err
 	}
 
-
 	_, err = cs.scheduler.NewJob(
-		gocron.CronJob("50 17 * * *", false), 
+		gocron.CronJob("00 18 * * *", false),
 		gocron.NewTask(cs.sendTestNews),
 	)
 	if err != nil {
@@ -95,8 +95,8 @@ func (cs *CronService) Start() error {
 
 	cs.scheduler.Start()
 	log.Println("✅ Cron service started successfully")
-	log.Println("📅 Auto news scheduled at: 08:00, 13:00, 17:00 WIB (02:00, 07:00, 11:00 Frankfurt)")
-	log.Println("🧪 Test news scheduled at: 00:40 WIB (18:40 Frankfurt)")
+	log.Println("📅 Auto news scheduled at: 08:00, 13:00, 17:00 WIB")
+	log.Println("🧪 Test news scheduled at: 01:00 WIB")
 	log.Println("🔄 Service health check: every minute")
 	log.Println("🌍 Timezone: Adjusted for Frankfurt deployment to match GMT+7 (WIB)")
 	return nil
@@ -143,7 +143,8 @@ func (cs *CronService) sendEveningNews() {
 func (cs *CronService) sendTestNews() {
 	wibTime := cs.getWIBTime()
 	log.Printf("🧪 [TEST NEWS] Sending test tech news... (WIB: %s)", wibTime.Format("15:04"))
-	cs.sendAutoNews("🧪 **Test News Update - 00:40 WIB**")
+	params := fmt.Sprintf("🧪 **Test News Update - %s WIB**", wibTime.Format("15:04"))
+	cs.sendAutoNews(params)
 }
 
 // Job untuk mengirim berita test immediate (setiap menit untuk debugging)
